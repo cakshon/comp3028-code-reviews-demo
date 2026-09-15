@@ -1,0 +1,491 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
+%
+\documentclass[
+  11pt,
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=22mm]{geometry}
+\usepackage{listings}
+\newcommand{\passthrough}[1]{#1}
+\lstset{defaultdialect=[5.3]Lua}
+\lstset{defaultdialect=[x86masm]Assembler}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\definecolor{AcademicBlue}{HTML}{17365D}
+\definecolor{CodeBackground}{HTML}{F4F6F8}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small COMP3028 -- Software Construction}
+\fancyhead[R]{\small Case Study 2}
+\fancyfoot[C]{\thepage}
+\setlength{\headheight}{14pt}
+\titleformat{\section}{\large\bfseries\color{AcademicBlue}}{\thesection.}{0.5em}{}
+\lstdefinelanguage{JavaScript}{keywords={import,from,const,let,export,async,await,function,return,try,catch,throw,new},sensitive=true,morecomment=[l]{//},morestring=[b]',morestring=[b]",morestring=[b]`}
+\lstset{basicstyle=\ttfamily\footnotesize,breaklines=true,columns=fullflexible,keepspaces=true,showstringspaces=false,backgroundcolor=\color{CodeBackground},frame=single,rulecolor=\color{black!15},keywordstyle=\bfseries\color{AcademicBlue}}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Code Review and Refactoring},
+  pdfauthor={COMP3028 --- Software Construction},
+  colorlinks=true,
+  linkcolor={Maroon},
+  filecolor={Maroon},
+  citecolor={Blue},
+  urlcolor={Blue},
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Code Review and Refactoring}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{Case Study 2: Laboratory Equipment Loan Service}
+\author{COMP3028 --- Software Construction}
+\date{}
+
+\begin{document}
+\maketitle
+
+\textbf{Assessment mode:} Individual implementation with paired peer
+review\\
+\textbf{Total marks:} 20\\
+\textbf{Submission:} Source code, tests, pull-request evidence, and a
+concise review report\\
+\textbf{Deadline and target branch:} As announced by the instructor
+
+\hypertarget{context}{%
+\section{Context}\label{context}}
+
+A university laboratory lends equipment, such as digital multimeters and
+oscilloscopes, to eligible students. A prototype service records a loan
+and calculates the date on which the equipment must be returned.
+
+The prototype was developed quickly. Although a typical seven-day
+request appears to work, it does not consistently enforce lending rules
+or communicate failures. You have been assigned to review and improve
+the service. Your changes must undergo peer review before integration
+into the designated development branch.
+
+This exercise uses fictional records and an in-memory repository. No
+database, credentials, network access, or external packages are
+required. Changes are not retained after the process exits.
+
+\hypertarget{intended-learning-outcomes}{%
+\section{Intended learning outcomes}\label{intended-learning-outcomes}}
+
+On completion, students should be able to:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Identify defects and maintainability concerns in asynchronous
+  JavaScript.
+\item
+  Implement validation and enforce explicit domain rules.
+\item
+  Calculate deterministic dates without mutating caller-owned objects.
+\item
+  Preserve successful outcomes while documenting intentional behaviour
+  changes.
+\item
+  Test success, failure, and boundary conditions using mocks.
+\item
+  Provide constructive, evidence-based feedback through a pull request.
+\end{enumerate}
+
+\hypertarget{supplied-implementation}{%
+\section{Supplied implementation}\label{supplied-implementation}}
+
+The primary review target is
+\passthrough{\lstinline!src/loanService.js!}. The following listing is
+the supplied implementation.
+
+\begin{lstlisting}
+// Intentionally incomplete student starter. See docs/assignment.md.
+// Repository and clock dependencies are provided by the caller.
+export async function borrowEquipment(request, repository, clock = () => new Date()) {
+    const student = await repository.findStudent(request.studentId);
+    const equipment = await repository.findEquipment(request.equipmentId);
+
+    const dueDate = clock();
+    dueDate.setUTCDate(dueDate.getUTCDate() + 7);
+
+    try {
+        const loan = await repository.createLoan({
+            studentId: student.id,
+            equipmentId: equipment.id,
+            dueAt: dueDate.toISOString()
+        });
+        return loan;
+    } catch (error) {
+        return null;
+    }
+}
+\end{lstlisting}
+
+The implementation already awaits repository operations, returns a
+stored record on success, and accepts substitutable dependencies.
+Reviewers must acknowledge these strengths rather than assuming that
+every part of the code is defective.
+
+\hypertarget{interface-and-repository-contract}{%
+\section{Interface and repository
+contract}\label{interface-and-repository-contract}}
+
+Preserve the public interface:
+
+\begin{lstlisting}
+borrowEquipment(request, repository, clock)
+\end{lstlisting}
+
+The request contains \passthrough{\lstinline!studentId!},
+\passthrough{\lstinline!equipmentId!}, and
+\passthrough{\lstinline!days!}. The optional clock returns a valid Date
+and defaults to the current time. It is trusted infrastructure; students
+need not validate arbitrary clock implementations.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Repository method
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Contract
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+findStudent(id) & Resolves to a record containing id and active, or null
+if absent. \\
+findEquipment(id) & Resolves to a record containing id and available, or
+null if absent. \\
+createLoan(data) & Resolves to the stored loan, including its generated
+id; rejects on storage failure or unavailable equipment. \\
+\end{longtable}
+
+Creation receives exactly the business fields
+\passthrough{\lstinline!studentId!},
+\passthrough{\lstinline!equipmentId!}, and
+\passthrough{\lstinline!dueAt!}. The repository owns the atomic
+operation that checks availability, creates the loan, and marks the
+equipment unavailable. The service must not implement a separate
+availability update.
+
+The service must check eligibility before attempting creation. A
+repository may still reject creation if availability changes
+subsequently; such an error must reach the caller.
+
+\hypertarget{task-a-initial-code-review}{%
+\section{Task A: Initial code review}\label{task-a-initial-code-review}}
+
+Identify at least five concerns. For each concern, report the relevant
+location, the observed issue, its possible consequence, and a justified
+improvement.
+
+Consider input types, missing records, eligibility, requested duration,
+ownership of mutable Date objects, and the treatment of repository
+failures. Distinguish an actual defect from a stylistic preference.
+
+Record your findings before implementation. Do not limit your review to
+the failures already exposed by the provided tests.
+
+\hypertarget{task-b-required-behaviour}{%
+\section{Task B: Required behaviour}\label{task-b-required-behaviour}}
+
+Apply validation and eligibility checks in the order specified below.
+Where more than one condition fails, report the first applicable error.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Order
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Condition
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Required result
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+1 & Request is missing, null, an array, or not an object & Reject with
+INVALID\_INPUT; no repository access. \\
+1 & Either ID is not a positive JavaScript safe integer, or days is not
+an integer from 1 to 14 inclusive & Reject with INVALID\_INPUT; no
+repository access. \\
+2 & Student is absent & Reject with STUDENT\_NOT\_FOUND. \\
+3 & Student is not active & Reject with STUDENT\_INACTIVE. \\
+4 & Equipment is absent & Reject with EQUIPMENT\_NOT\_FOUND. \\
+5 & Equipment is unavailable & Reject with EQUIPMENT\_UNAVAILABLE. \\
+6 & All conditions pass & Calculate the due date, await one creation
+operation, and return the stored loan. \\
+\end{longtable}
+
+For valid records, active and available are Boolean fields. Numeric
+strings such as ``1'' must be rejected rather than converted. Ignore
+additional request fields; do not pass them to storage.
+
+Each specified domain or validation error must be an Error instance with
+a \passthrough{\lstinline!code!} property matching the table and a
+meaningful message. Exact wording is not prescribed.
+
+Additional requirements:
+
+\begin{itemize}
+\tightlist
+\item
+  Do not attempt loan creation after any failed validation or
+  eligibility check.
+\item
+  Read the clock once for a successful eligibility path. Calculate dueAt
+  as exactly the requested number of 24-hour days after that instant,
+  represented as an ISO UTC string.
+\item
+  Do not mutate the request, repository records, or Date returned by the
+  clock.
+\item
+  Propagate failures from any repository method. Rethrow the original
+  error or preserve it as the cause of a new error. Do not replace
+  failure with null or a successful result.
+\item
+  Preserve the successful return contract: the stored loan is returned
+  only after creation completes.
+\item
+  Preserve the public signature and the provided repository contract.
+  Internal helper functions may be introduced.
+\item
+  Do not add database setup, external services, or unrelated
+  functionality.
+\end{itemize}
+
+\hypertarget{task-c-refactoring-rationale}{%
+\section{Task C: Refactoring
+rationale}\label{task-c-refactoring-rationale}}
+
+Explain the purpose and behavioural impact of the changes.
+
+Separating validation into a helper or improving names may preserve
+behaviour. Rejecting invalid requests, enforcing eligibility, respecting
+requested duration, and exposing previously swallowed errors
+intentionally change behaviour. Identify these changes explicitly.
+
+Discuss why mutation of a caller-owned Date can cause surprising
+behaviour in repeated calls. Explain why dependency substitution
+supports deterministic tests and independent code review.
+
+\hypertarget{task-d-testing}{%
+\section{Task D: Testing}\label{task-d-testing}}
+
+Run the supplied tests and add coverage for requirements not yet
+exercised. Do not delete, skip, or weaken supplied assertions to obtain
+a passing result.
+
+The unmodified starter is expected to produce \textbf{2 passing smoke
+tests and 8 failing acceptance tests}. The final submission should pass
+all supplied tests and the additional tests you write.
+
+At minimum, extend coverage to include:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Duration boundaries 1 and 14, values outside the range, fractional
+  values, and numeric strings.
+\item
+  Invalid IDs, including unsafe integers, and invalid request shapes;
+  verify no repository access.
+\item
+  Missing equipment and cases where multiple eligibility checks fail,
+  demonstrating error precedence.
+\item
+  Failures in student lookup and equipment lookup, in addition to
+  creation failure.
+\item
+  An exact due date across a month or year boundary and preservation of
+  the input Date.
+\item
+  Exactly one creation for an accepted request, with only the required
+  fields.
+\item
+  A deferred creation promise, demonstrating that success is not
+  returned prematurely.
+\item
+  Repeated calls with a deterministic clock and unchanged caller-owned
+  inputs.
+\end{enumerate}
+
+Use fresh fixtures for independent tests. Assertions should verify
+relevant behaviour rather than private helper names or formatting. The
+supplied suite is a starting point, not a complete specification.
+
+\hypertarget{task-e-peer-review}{%
+\section{Task E: Peer review}\label{task-e-peer-review}}
+
+Each student must complete one author role and one reviewer role.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Create a dedicated branch and complete a self-review.
+\item
+  Commit logical changes with meaningful messages.
+\item
+  Open a pull request against the instructor-designated target branch.
+  Use the provided template.
+\item
+  Review a peer's code, rationale, and tests against this brief.
+\item
+  Label feedback as a required change, suggestion, or question. Explain
+  the observation and consequence; propose an action where appropriate.
+\item
+  Respond to substantive feedback through revision or a reasoned
+  explanation.
+\item
+  Request re-review and record the reviewer's final decision. Follow the
+  instructor's merge rules.
+\end{enumerate}
+
+The reviewer should verify correctness, readability, error propagation,
+date ownership, and test quality. Avoid inventing defects or imposing
+undocumented personal style preferences.
+
+An example of constructive feedback is:
+
+\begin{quote}
+The due-date variable refers to the Date returned by the clock. Updating
+it also changes the caller's object, which can shift later calculations.
+Please avoid mutating that object and add a test confirming that its
+timestamp remains unchanged.
+\end{quote}
+
+\hypertarget{deliverables}{%
+\section{Deliverables}\label{deliverables}}
+
+Submit:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  The improved service and any justified internal helpers.
+\item
+  Supplied and additional tests, with execution instructions and actual
+  results.
+\item
+  An initial review and implementation rationale.
+\item
+  A link to the authored pull request and evidence of the peer review
+  performed.
+\item
+  A completed review record and a brief reflection on feedback received.
+\end{enumerate}
+
+Use the provided review-record template where helpful. Follow the
+course's academic integrity policy and attribute external material.
+Report only verification that you actually performed.
+
+\hypertarget{assessment-rubric}{%
+\section{Assessment rubric}\label{assessment-rubric}}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.4286}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5714}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Criterion
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Marks
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Accurate initial review identifying strengths and defects with
+consequences & 4 \\
+Correct validation, eligibility, duration calculation, and failure
+propagation & 6 \\
+Maintainable structure, clear names, and preservation of interfaces and
+ownership & 3 \\
+Meaningful additional tests covering boundaries and asynchronous failure
+behaviour & 4 \\
+Constructive peer review, justified responses, and documented revisions
+& 3 \\
+\textbf{Total} & \textbf{20} \\
+\end{longtable}
+
+\hypertarget{scope-limitations}{%
+\section{Scope limitations}\label{scope-limitations}}
+
+Authentication, authorisation, fees, notifications, renewals, student
+loan quotas, and production database transactions are outside the
+assessment. The repository contract provides atomic creation;
+implementing production concurrency control is not required.
+
+\textbf{Reflection question:} Why can a successful demonstration with
+one valid request provide insufficient evidence that a service is ready
+to merge?
+
+\end{document}
