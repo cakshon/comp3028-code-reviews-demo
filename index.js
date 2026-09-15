@@ -25,6 +25,6 @@ export async function saveCartItem(userId, productId, quantity) {
         console.log('Cart item saved:', res.rows[0]);
         return res.rows[0];
     } catch (err) {
-        console.error('Error saving cart item:', err.stack);
+        console.error('Get Error saving cart item:', err.stack);
     }
 }
